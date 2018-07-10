@@ -1,0 +1,106 @@
+#Library packages that should be downloaded
+library(ipumsr)
+library(dplyr)
+library(readxl)
+
+#Read in data using the IPUMSR package
+ddi <- read_ipums_ddi("nhis_00005.xml")
+IPUMSdata <- read_ipums_micro(ddi)
+
+#Subsetting data set, filtering it to get ages 12-20
+IPUMSdata_12_20 <- filter(IPUMSdata, AGE>11, AGE<21)
+
+#Creating New Weight, Height and BMI Variable
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_weight = case_when(
+  AGE < 18 ~ WEIGHTKID, 
+  AGE >= 18 ~ WEIGHT))
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_height = case_when(
+  AGE < 18 ~ HEIGHTKID, 
+  AGE >= 18 ~ HEIGHT))
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_BMI = case_when(
+  AGE < 18 ~ BMIKID/100, 
+  AGE >= 18 ~ BMI))
+
+# Filter out missing data based on Height and Weight
+IPUMSdata_12_20 <- filter(IPUMSdata_12_20, new_height > 40, new_height < 90)
+IPUMSdata_12_20 <- filter(IPUMSdata_12_20, new_weight > 20, new_weight < 500)
+
+#Male and Female datasets from the CDC, change file paths
+cdc_mdata <- read_excel("/Users/Mschultz/Desktop/Ref_percentile_curves.xlsx", 
+                        sheet = "Males, 2-20 years")
+cdc_mdata$age_m = cdc_mdata$AgeInMonths / 12
+cdc_fdata <- read_excel("/Users/Mschultz/Desktop/Ref_percentile_curves.xlsx", 
+                        sheet = "Females, 2-20 years")
+cdc_fdata$age_m = cdc_fdata$AgeInMonths / 12
+
+#Subsetting data for Males
+m_input = filter(bdata, SEX==1)
+head(m_input)
+
+#Creating an AgeInMonths variable for Males
+m_input <- mutate(IPUMSdata_12_20, AgeInMonths = 12*AGE + 0.5)
+
+loadfonts()
+
+#Creating Graph for Males, the original version
+par(mar=c(4.4,5,2,1))
+par(oma=c(1,1,0,0))
+par(las=1)
+plot(jitter(x=m_input$AGE), y=m_input$new_BMI, xlab="", ylab=expression(bold(paste("Body Mass Index (kg/m"^"2",")"))), axes=FALSE, xlim=c(11,22), ylim=c(10,50), main="Males",type="p", pch=19, cex=0.5, col= mycol)
+mtext("Age (years)", side=1, line=3, adj=0.35, font=2)
+mycol <- rgb(0, 0, 255, max = 255, alpha = 50, names = "blue50")
+axis(side =1, at=c(2, 20), labels = c("",""), lwd.ticks=0)
+axis(side =1, at= seq(2, 20, by=2), lwd=0, lwd.ticks=1)
+axis(side =2, at= seq(10, 50, by=2), cex.axis=0.8)
+lines(cdc_mdata$age_m, cdc_mdata$m5,type="l", lwd=2, col="black")
+lines(cdc_mdata$age_m, cdc_mdata$m50, type="l", lwd=2, col="green4")
+lines(cdc_mdata$age_m, cdc_mdata$m85, type="l", lwd=2, col="mediumblue")
+lines(cdc_mdata$age_m, cdc_mdata$m95, type="l", lwd=2, col="red1")
+lines(cdc_mdata$age_m, cdc_mdata$mSevereC2, type="l", lwd=2, col="tan4")
+lines(cdc_mdata$age_m, cdc_mdata$mSevereC3, type="l", lwd=2, col="orange")
+
+text(20.25, 19, expression(bold(paste("5"^"th", " percentile"))), cex=0.8, pos=4)
+text(20.25, 23, expression(bold(paste("50"^"th", " percentile"))), cex=0.8, pos=4)
+text(20.25, 28.5, "Overweight: ", cex=0.8, pos=4, font=2)
+text(20.25, 27, expression(bold(paste("85"^"th", " percentile"))), cex=0.8, pos=4)
+text(20.25, 32.5, "Obese Class 1: ", cex=0.8, pos=4,font=2)
+text(20.25, 31, expression(bold(paste("95"^"th", " percentile"))), cex=0.8, pos=4)
+text(20.25, 38.5, "Severe Obesity Class 2: ", cex=0.8, pos=4, font=2)
+text(20.25, 37, expression(bold(paste("120% of 95"^"th"," percentile"))), cex=0.8, pos=4)
+text(20.25, 44.5, "Severe Obesity Class 3: ", cex=0.8, pos=4, font=2)
+text(20.25, 43, expression(bold(paste("140% of 95"^"th", " percentile"))), cex=0.8, pos=4)
+
+#Subsetting data Females
+f_input = filter(bdata, SEX==2)
+head(f_input)
+
+#Creating an AgeInMonths variable Females
+f_input <- mutate(IPUMSdata_12_20, AgeInMonths = 12*AGE + 0.5)
+
+par(mar=c(4.4,5,2,1))
+par(oma=c(1,1,0,0))
+par(las=1)
+mycol2 <- rgb(1, 0, 0, alpha=0.3)
+plot(jitter(x=f_input$AGE), y=f_input$new_BMI, xlab="",ylab=expression(bold(paste("Body Mass Index (kg/m"^"2",")"))), axes=FALSE, xlim=c(11,22), ylim=c(10,50), main="Females",type="p",pch=19, cex=0.5, col=mycol2)
+mtext("Age (years)", side=1, line=3, adj=0.35, font=2)
+axis(side =1, at=c(2, 20), labels = c("",""), lwd.ticks=0)
+axis(side =1, at= seq(2, 20, by=2), lwd=0, lwd.ticks=1)
+axis(side =2, at= seq(10, 60, by=2), cex.axis=0.8)
+lines(cdc_fdata$age_m, cdc_fdata$f5,type="l", lwd=2, col="black")
+lines(cdc_fdata$age_m, cdc_fdata$f50, type="l", lwd=2, col="green4")
+lines(cdc_fdata$age_m, cdc_fdata$f85, type="l", lwd=2, col="mediumblue")
+lines(cdc_fdata$age_m, cdc_fdata$f95, type="l", lwd=2, col="red1")
+lines(cdc_fdata$age_m, cdc_fdata$fSevereC2, type="l", lwd=2, col="tan4")
+lines(cdc_fdata$age_m, cdc_fdata$fSevereC3, type="l", lwd=2, col="orange")
+
+text(20.25, 19, expression(bold(paste("5"^"th", " percentile"))), cex=0.8, pos=4)
+text(20.25, 23, expression(bold(paste("50"^"th", " percentile"))), cex=0.8, pos=4)
+text(20.25, 28.5, "Overweight: ", cex=0.8, pos=4, font=2)
+text(20.25, 27, expression(bold(paste("85"^"th", " percentile"))), cex=0.8, pos=4)
+text(20.25, 32.5, "Obese Class 1: ", cex=0.8, pos=4,font=2)
+text(20.25, 31, expression(bold(paste("95"^"th", " percentile"))), cex=0.8, pos=4)
+text(20.25, 38.5, "Severe Obesity Class 2: ", cex=0.8, pos=4, font=2)
+text(20.25, 37, expression(bold(paste("120% of 95"^"th"," percentile"))), cex=0.8, pos=4)
+text(20.25, 44.5, "Severe Obesity Class 3: ", cex=0.8, pos=4, font=2)
+text(20.25, 43, expression(bold(paste("140% of 95"^"th", " percentile"))), cex=0.8, pos=4)
+
