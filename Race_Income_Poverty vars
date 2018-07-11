@@ -1,0 +1,143 @@
+library(ipumsr)
+library(dplyr)
+library(readxl)
+
+#Read in data using the IPUMSR package
+ddi <- read_ipums_ddi("nhis_00006.xml")
+IPUMSdata <- read_ipums_micro(ddi)
+
+
+#Subsetting data set, filtering it to get ages 12-20
+IPUMSdata_12_20 <- filter(IPUMSdata, AGE>11, AGE<21)
+
+#Creating New Weight, Height, and BMI Variable
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_weight = case_when(
+  AGE < 18 ~ WEIGHTKID, 
+  AGE >= 18 ~ WEIGHT))
+
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_height = case_when(
+  AGE < 18 ~ HEIGHTKID, 
+  AGE >= 18 ~ HEIGHT))
+
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_BMI = case_when(
+  AGE < 18 ~ BMIKID/100, 
+  AGE >= 18 ~ BMI))
+
+# Filter out missing data based on Height and Weight
+IPUMSdata_12_20 <- filter(IPUMSdata_12_20, new_height > 40, new_height < 90)
+IPUMSdata_12_20 <- filter(IPUMSdata_12_20, new_weight > 20, new_weight < 500)
+
+#Recoding values to missing
+IPUMSdata_12_20$RACEA[IPUMSdata_12_20$RACEA>=434] <- NA
+
+# Creating New Race Variable
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_RACE = case_when(
+  RACEA == 100 ~ "White",
+  RACEA == 200 ~ "Black",
+  RACEA == 310 ~ "Alaska Native / American Indian",
+  RACEA > 400 & RACEA < 500 ~ "Asian",
+  RACEA == 580 ~ NA_character_,
+  RACEA == 600 ~ "Multiple"
+))
+
+# Creating New Poverty Variable
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_POVERTY = case_when(
+  POVERTY <= 14 ~ "Less than 1.0",
+  POVERTY <= 25 & POVERTY >= 20 ~ "1.00-1.99",
+  POVERTY <= 36 & POVERTY >= 30 ~ "2.00 and over",
+  POVERTY == 37 ~ "5.00 and over"
+))
+
+# Creating New Income Variable
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_INCOME = case_when(
+  INCFAM07ON <= 12 ~ "$0 - $49,999",
+  INCFAM07ON <= 23 & INCFAM07ON >= 20 ~ "$50,000 and over",
+  INCFAM07ON == 24 ~ "$100,000 and over"
+))
+
+#Male and Female datasets from the CDC, change file paths
+cdc_mdata <- read_excel("/Users/Mschultz/Desktop/Ref_percentile_curves.xlsx", 
+                        sheet = "Males, 2-20 years")
+cdc_mdata$age_m = cdc_mdata$AgeInMonths / 12
+cdc_fdata <- read_excel("/Users/Mschultz/Desktop/Ref_percentile_curves.xlsx", 
+                        sheet = "Females, 2-20 years")
+cdc_fdata$age_m = cdc_fdata$AgeInMonths / 12
+
+
+#Subsetting data for Males and Females
+m_input = filter(IPUMSdata_12_20, SEX==1)
+head(m_input)
+f_input = filter(IPUMSdata_12_20, SEX==2)
+head(f_input)
+
+
+#Creating an AgeInMonths variable for Males and Females
+m_input <- mutate(m_input, AgeInMonths = 12*AGE + 0.5)
+f_input <- mutate(f_input, AgeInMonths = 12*AGE + 0.5)
+
+#Variable Check
+#table(IPUMSdata_12_20$POVERTY, IPUMSdata_12_20$POORYN)
+#table (IPUMSdata_12_20$POORYN)
+#table (IPUMSdata_12_20$new_POVERTY)
+
+#table(IPUMSdata_12_20$EDUC, IPUMSdata_12_20$INCFAM07ON)
+
+#table(IPUMSdata_12_20$HINOTCOVE, IPUMSdata_12_20$POVERTY)
+
+#table(IPUMSdata_12_20$HINOTCOVE)
+
+#table(IPUMSdata_12_20$MOD10FWK)
+#table(IPUMSdata_12_20$VIG10FWK)
+#table(IPUMSdata_12_20$STRONGFWK)
+
+#table(IPUMSdata_12_20$USUALPL)
+
+#table(IPUMSdata_12_20$RACEA)
+
+#table(IPUMSdata_12_20$HISPETH)
+
+#table(IPUMSdata_12_20$new_RACE)
+#table(IPUMSdata_12_20$new_INCOME)
+
+library(ggplot2)
+
+newplot <- ggplot(IPUMSdata_12_20, aes(AGE,new_BMI)) + geom_jitter(shape=16, height=0, alpha = 0.3, aes(color = as.factor(SEX)))
+
+newplot
+
+#newplot+facet_grid(SEX~new_RACE)
+
+#newplot+facet_grid(SEX~new_INCOME)
+
+#newplot+facet_grid(SEX~new_POVERTY)
+
+lm(formula=new_BMI ~ new_RACE, data=IPUMSdata_12_20)
+linearMOD <- lm(formula=new_BMI ~ new_RACE, data=IPUMSdata_12_20)
+linearMOD
+
+
+#Creating the Linear Regression Models
+lm(formula=new_BMI ~ new_RACE, data=IPUMSdata_12_20)
+
+lm(formula=new_BMI ~ new_INCOME, data=IPUMSdata_12_20)
+
+lm(formula=new_BMI ~ new_POVERTY, data=IPUMSdata_12_20)
+
+#First attempt at ggplot and regression models
+ggplot(data = IPUMSdata_12_20, aes(x = new_BMI, y = new_RACE)) + 
+  geom_point(color='blue') +
+  geom_smooth(method = "lm", se = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
