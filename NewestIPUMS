@@ -6,7 +6,6 @@ library(readxl)
 ddi <- read_ipums_ddi("nhis_00006.xml")
 IPUMSdata <- read_ipums_micro(ddi)
 
-
 #Subsetting data set, filtering it to get ages 12-20
 IPUMSdata_12_20 <- filter(IPUMSdata, AGE>11, AGE<21)
 
@@ -23,17 +22,69 @@ IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_BMI = case_when(
   AGE < 18 ~ BMIKID/100, 
   AGE >= 18 ~ BMI))
 
-# Creating New Race Variable? What else is needed to combine the two?
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_RACE = case_when(
-  HISPETH <= 20 ~ HISPETH,
-  RACEA <=434 ~ RACEA
-))
-
-
 # Filter out missing data based on Height and Weight
 IPUMSdata_12_20 <- filter(IPUMSdata_12_20, new_height > 40, new_height < 90)
 IPUMSdata_12_20 <- filter(IPUMSdata_12_20, new_weight > 20, new_weight < 500)
-IPUMSdata_12_20 <- filter(IPUMSdata_12_20, RACEA <= 434)
+
+# Creating New Race Variable
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_RACE = case_when(
+  RACEA == 100 ~ "aaWhite",
+  RACEA == 200 ~ "Black",
+  RACEA == 310 ~ "Alaska Native / American Indian",
+  RACEA > 400 & RACEA < 500 ~ "Asian",
+  RACEA == 580 ~ NA_character_,
+  RACEA == 600 ~ "Multiple"
+))
+
+# Creating New Poverty Variable
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_POVERTY = case_when(
+  POVERTY <= 14 ~ "0-1.0",
+  POVERTY <= 25 & POVERTY >= 20 ~ "1.00-1.99",
+  POVERTY <= 36 & POVERTY >= 31 ~ "2.00-4.99",
+  POVERTY == 38 ~ "2.00-4.99",
+  POVERTY == 37 ~ "5.00 and over"
+))
+
+# Creating New Income Variables 1 and 2
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_INCOME = case_when(
+  INCFAM07ON <= 12 ~ "$0 - $49,999",
+  INCFAM07ON <= 23 & INCFAM07ON >= 20 ~ "$50,000 and $99,999",
+  INCFAM07ON == 24 ~ "$100,000 and over"
+))
+
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_INCOME2 = case_when(
+  INCFAM07ON <= 12 ~ "$0 - $49,999",
+  INCFAM07ON >= 20 ~ "$50,000 and over"
+))
+
+# Creating New Variable that indicates Usual Place of Medical Care
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_USUALPL = case_when(
+  USUALPL == 1 ~ "N0",
+  USUALPL <= 3 ~ "Yes",
+  USUALPL == 0 ~ NA_character_,
+  USUALPL > 6 ~ NA_character_
+))
+
+#Creating New Health Status Variable
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_HEALTH = case_when(
+  HEALTH == 1 ~ "aExcellent", 
+  HEALTH == 2 ~ "bVery Good",
+  HEALTH == 3 ~ "cGood", 
+  HEALTH == 4 ~ "dFair",
+  HEALTH == 5 ~ "ePoor", 
+  HEALTH == 0 ~ NA_character_,
+  HEALTH > 6 ~ NA_character_ 
+))
+
+#Creating New Variable Indicating those Above or Below Poverty Threshold
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_POORYN = case_when(
+  POORYN == 1 ~ "Above",
+  POORYN == 2 ~ "Below",
+  POORYN == 9 ~ NA_character_
+))
+
+#Creating Age Squared Variable
+age.SQ <- IPUMSdata_12_20$AGE^2
 
 #Male and Female datasets from the CDC, change file paths
 cdc_mdata <- read_excel("/Users/Mschultz/Desktop/Ref_percentile_curves.xlsx", 
@@ -55,50 +106,37 @@ head(f_input)
 m_input <- mutate(m_input, AgeInMonths = 12*AGE + 0.5)
 f_input <- mutate(f_input, AgeInMonths = 12*AGE + 0.5)
 
-#Variable Check
-table(IPUMSdata_12_20$POVERTY, IPUMSdata_12_20$POORYN)
-table (IPUMSdata_12_20$POORYN)
-table (IPUMSdata_12_20$POVERTY)
+#Creating a MLR with all variables
+#fullmodel <- lm(formula=new_BMI ~ AGE + age.SQ + new_RACE + SEX + AGE*age.SQ + AGE*new_RACE + age.SQ*new_RACE + AGE*SEX + age.SQ*SEX, data=IPUMSdata_12_20) 
+#summary(fullmodel)
 
-table(IPUMSdata_12_20$EDUC, IPUMSdata_12_20$INCFAM07ON)
+#step(fullmodel, data=IPUMSdata_12_20, direction = "backward")
 
-table(IPUMSdata_12_20$HINOTCOVE, IPUMSdata_12_20$POVERTY)
-table(IPUMSdata_12_20$HINOTCOVE)
+#Creating a New Model that includes significant variables 
+#newmodel <- lm(formula=new_BMI ~ AGE + age.SQ + new_RACE + SEX + AGE*SEX + age.SQ*SEX, data=IPUMSdata_12_20)
 
-table(IPUMSdata_12_20$MOD10FWK)
-table(IPUMSdata_12_20$VIG10FWK)
-table(IPUMSdata_12_20$STRONGFWK)
+#summary(newmodel)
 
-table(IPUMSdata_12_20$USUALPL)
+#interaction.plot(IPUMSdata_12_20$AGE, IPUMSdata_12_20$SEX, IPUMSdata_12_20$new_BMI)
+#interaction.plot(IPUMSdata_12_20$AGE, IPUMSdata_12_20$new_RACE, IPUMSdata_12_20$new_BMI)
 
-table(IPUMSdata_12_20$RACEA)
+innatemod <- lm(formula=new_BMI ~ AGE + age.SQ + new_RACE + SEX + AGE*new_RACE + age.SQ*new_RACE + AGE*SEX + age.SQ*SEX, data=IPUMSdata_12_20)
+summary(innatemod)
+#First attempt using ggplot to create a regression model
+ggplot(data = IPUMSdata_12_20, aes(x = new_BMI, y = new_RACE)) + 
+  geom_point(color='blue') +
+  geom_smooth(method = "lm", se = FALSE)
 
-table(IPUMSdata_12_20$HISPETH)
 
-table(IPUMSdata_12_20$new_RACE)
+linmod <- lm(formula = new_BMI ~ new_RACE, data = IPUMSdata_12_20)
+summary(linmod)
+
+table(IPUMSdata_12_20$RACEA, IPUMSdata_12_20$new_RACE)
+
+table(IPUMSdata_12_20$RACEA, IPUMSdata_12_20$new_RACE, useNA = "ifany")
 
 library(ggplot2)
-
-newplot <- ggplot(IPUMSdata_12_20, aes(AGE,new_BMI)) + geom_jitter(shape=16, height=0, alpha = 0.3, aes(color = as.factor(SEX)))
-
-newplot
-
-newplot+facet_grid(SEX~new_RACE)
-
-conversion <- c(
-  '10' = 'Not Span',
-  '20' = 'Mexican',
-  '100' = 'White', 
-  '200' = 'Black', 
-  '310' = 'Am. Indian',
-  '411' = 'Chinese', 
-  '412' = 'Filipino',
-  '416' = 'Asian In.',
-  '434' = 'Other Asian'
-)
-
-
-newplot+facet_grid(.~new_RACE, labeller = labeller(new_RACE = conversion))
+ggplot(data=IPUMSdata_12_20, aes(x=AGE, y=new_BMI)) +geom_jitter() + geom_smooth(method= "lm") +facet_grid(.~new_RACE)
 
 
 
