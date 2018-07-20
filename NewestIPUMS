@@ -83,6 +83,14 @@ IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_POORYN = case_when(
   POORYN == 9 ~ NA_character_
 ))
 
+#Creating New Variable that indicates whether or not someone has Health Insurance
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_HINOTCOVE = case_when(
+  HINOTCOVE == 1 ~ "Yes",
+  HINOTCOVE == 2 ~ "No",
+  HINOTCOVE == 0 ~ NA_character_,
+  HINOTCOVE > 6 ~ NA_character_
+))
+
 #Creating Age Squared Variable
 age.SQ <- IPUMSdata_12_20$AGE^2
 
@@ -120,23 +128,24 @@ f_input <- mutate(f_input, AgeInMonths = 12*AGE + 0.5)
 #interaction.plot(IPUMSdata_12_20$AGE, IPUMSdata_12_20$SEX, IPUMSdata_12_20$new_BMI)
 #interaction.plot(IPUMSdata_12_20$AGE, IPUMSdata_12_20$new_RACE, IPUMSdata_12_20$new_BMI)
 
-innatemod <- lm(formula=new_BMI ~ AGE + age.SQ + new_RACE + SEX + AGE*new_RACE + age.SQ*new_RACE + AGE*SEX + age.SQ*SEX, data=IPUMSdata_12_20)
+innatemod <- lm(formula=new_BMI ~ AGE + age.SQ + SEX + AGE*SEX + age.SQ*SEX, data=IPUMSdata_12_20)
 summary(innatemod)
+
+externalmod <- lm(formula=new_BMI ~ new_POORYN + new_POVERTY + new_INCOME2 + new_USUALPL + new_HINOTCOVE + new_HEALTH, data=IPUMSdata_12_20)
+summary(externalmod)
+
 #First attempt using ggplot to create a regression model
-ggplot(data = IPUMSdata_12_20, aes(x = new_BMI, y = new_RACE)) + 
-  geom_point(color='blue') +
-  geom_smooth(method = "lm", se = FALSE)
+#ggplot(data = IPUMSdata_12_20, aes(x = new_BMI, y = new_RACE)) + 
+  #geom_point(color='blue') +
+  #geom_smooth(method = "lm", se = FALSE)
 
 
-linmod <- lm(formula = new_BMI ~ new_RACE, data = IPUMSdata_12_20)
-summary(linmod)
+#table(IPUMSdata_12_20$RACEA, IPUMSdata_12_20$new_RACE)
 
-table(IPUMSdata_12_20$RACEA, IPUMSdata_12_20$new_RACE)
+#table(IPUMSdata_12_20$RACEA, IPUMSdata_12_20$new_RACE, useNA = "ifany")
 
-table(IPUMSdata_12_20$RACEA, IPUMSdata_12_20$new_RACE, useNA = "ifany")
-
-library(ggplot2)
-ggplot(data=IPUMSdata_12_20, aes(x=AGE, y=new_BMI)) +geom_jitter() + geom_smooth(method= "lm") +facet_grid(.~new_RACE)
+#library(ggplot2)
+#ggplot(data=IPUMSdata_12_20, aes(x=AGE, y=new_BMI)) +geom_jitter() + geom_smooth(method= "lm") +facet_grid(.~new_RACE)
 
 
 
