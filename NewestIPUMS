@@ -1,4 +1,4 @@
-\library(ipumsr)
+library(ipumsr)
 library(dplyr)
 library(readxl)
 
@@ -95,27 +95,8 @@ IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_HINOTCOVE = case_when(
 IPUMSdata_12_20$SEX <- as.factor(IPUMSdata_12_20$SEX)
 
 #Creating Age Squared Variable
-age.SQ <- IPUMSdata_12_20$AGE^2
+IPUMSdata12_20 <- mutate(IPUMSdata_12_20, age.SQ = AGE^2)
 
-#Male and Female datasets from the CDC, change file paths
-cdc_mdata <- read_excel("/Users/Mschultz/Desktop/Ref_percentile_curves.xlsx", 
-                        sheet = "Males, 2-20 years")
-cdc_mdata$age_m = cdc_mdata$AgeInMonths / 12
-cdc_fdata <- read_excel("/Users/Mschultz/Desktop/Ref_percentile_curves.xlsx", 
-                        sheet = "Females, 2-20 years")
-cdc_fdata$age_m = cdc_fdata$AgeInMonths / 12
-
-
-#Subsetting data for Males and Females
-m_input = filter(IPUMSdata_12_20, SEX==1)
-head(m_input)
-f_input = filter(IPUMSdata_12_20, SEX==2)
-head(f_input)
-
-
-#Creating an AgeInMonths variable for Males and Females
-m_input <- mutate(m_input, AgeInMonths = 12*AGE + 0.5)
-f_input <- mutate(f_input, AgeInMonths = 12*AGE + 0.5)
 
 #Creating MLR with different variables
 innatemod <- lm(formula=new_BMI ~ AGE + age.SQ + SEX + AGE*SEX + age.SQ*SEX + new_RACE + AGE*new_RACE + age.SQ*new_RACE + new_RACE*SEX, data=IPUMSdata_12_20)
@@ -127,28 +108,17 @@ fullmod <- lm(new_BMI ~ AGE + age.SQ + SEX + AGE*SEX + age.SQ*SEX + new_RACE + n
                 new_POVERTY + new_INCOME2 + new_USUALPL + new_HINOTCOVE, data = IPUMSdata_12_20)
 summary(fullmod)
 
-newdata <- data.frame(list(AGE=15, age.SQ=225, SEX=as.factor(1), new_RACE="Black", new_POVERTY="1.00-1.99", new_INCOME2="$50,000 and over", new_USUALPL="Yes", new_HINOTCOVE="Yes"))
 
-lmtest <- predict(fullmod, newdata=newdata, interval="prediction", level=.95)
-
-head(newdata)
-head(lmtest)
-
-lmtest <- cbind(newdata,lmtest)
+# Graphing results of fullmod
 library(ggplot2)
-
-ggplot(data=lmtest, aes(x = AGE, y = fit, color=SEX)) + geom_point()
-
 
 newdata1 <- data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, SEX=as.factor(1), new_RACE="Black", new_POVERTY="1.00-1.99", new_INCOME2="$50,000 and over", new_USUALPL="Yes", new_HINOTCOVE="Yes"))
 newdata2 <- data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, SEX=as.factor(2), new_RACE="Black", new_POVERTY="1.00-1.99", new_INCOME2="$50,000 and over", new_USUALPL="Yes", new_HINOTCOVE="Yes"))
 newdata <- rbind(newdata1, newdata2)
-lmtest <- cbind(newdata,lmtest, row.names=NULL)
+lmtest <- predict(fullmod, newdata=newdata, interval = "prediction", level=.95)
+lmtest <- cbind(newdata, lmtest)
 
 ggplot(data=lmtest, aes(x = AGE, y = fit, color=SEX)) + geom_point()
-
-#Prediction Intervals 
-predict(fullmod, newdata=newdata, interval="prediction", level=.95)
 
 #First attempt using ggplot to create a regression model
 #ggplot(data = IPUMSdata_12_20, aes(x = new_BMI, y = new_RACE)) + 
