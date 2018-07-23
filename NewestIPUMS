@@ -1,4 +1,4 @@
-library(ipumsr)
+\library(ipumsr)
 library(dplyr)
 library(readxl)
 
@@ -91,6 +91,9 @@ IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_HINOTCOVE = case_when(
   HINOTCOVE > 6 ~ NA_character_
 ))
 
+#Changing Sex into a factor 
+IPUMSdata_12_20$SEX <- as.factor(IPUMSdata_12_20$SEX)
+
 #Creating Age Squared Variable
 age.SQ <- IPUMSdata_12_20$AGE^2
 
@@ -114,25 +117,38 @@ head(f_input)
 m_input <- mutate(m_input, AgeInMonths = 12*AGE + 0.5)
 f_input <- mutate(f_input, AgeInMonths = 12*AGE + 0.5)
 
-#Creating a MLR with all variables
-#fullmodel <- lm(formula=new_BMI ~ AGE + age.SQ + new_RACE + SEX + AGE*age.SQ + AGE*new_RACE + age.SQ*new_RACE + AGE*SEX + age.SQ*SEX, data=IPUMSdata_12_20) 
-#summary(fullmodel)
+#Creating MLR with different variables
+innatemod <- lm(formula=new_BMI ~ AGE + age.SQ + SEX + AGE*SEX + age.SQ*SEX + new_RACE + AGE*new_RACE + age.SQ*new_RACE + new_RACE*SEX, data=IPUMSdata_12_20)
 
-#step(fullmodel, data=IPUMSdata_12_20, direction = "backward")
-
-#Creating a New Model that includes significant variables 
-#newmodel <- lm(formula=new_BMI ~ AGE + age.SQ + new_RACE + SEX + AGE*SEX + age.SQ*SEX, data=IPUMSdata_12_20)
-
-#summary(newmodel)
-
-#interaction.plot(IPUMSdata_12_20$AGE, IPUMSdata_12_20$SEX, IPUMSdata_12_20$new_BMI)
-#interaction.plot(IPUMSdata_12_20$AGE, IPUMSdata_12_20$new_RACE, IPUMSdata_12_20$new_BMI)
-
-innatemod <- lm(formula=new_BMI ~ AGE + age.SQ + SEX + AGE*SEX + age.SQ*SEX, data=IPUMSdata_12_20)
-summary(innatemod)
-
-externalmod <- lm(formula=new_BMI ~ new_POORYN + new_POVERTY + new_INCOME2 + new_USUALPL + new_HINOTCOVE + new_HEALTH, data=IPUMSdata_12_20)
+externalmod <- lm(formula=new_BMI ~ new_POVERTY + new_INCOME2 + new_USUALPL + new_HINOTCOVE + new_HEALTH, data=IPUMSdata_12_20)
 summary(externalmod)
+
+fullmod <- lm(new_BMI ~ AGE + age.SQ + SEX + AGE*SEX + age.SQ*SEX + new_RACE + new_RACE*SEX +
+                new_POVERTY + new_INCOME2 + new_USUALPL + new_HINOTCOVE, data = IPUMSdata_12_20)
+summary(fullmod)
+
+newdata <- data.frame(list(AGE=15, age.SQ=225, SEX=as.factor(1), new_RACE="Black", new_POVERTY="1.00-1.99", new_INCOME2="$50,000 and over", new_USUALPL="Yes", new_HINOTCOVE="Yes"))
+
+lmtest <- predict(fullmod, newdata=newdata, interval="prediction", level=.95)
+
+head(newdata)
+head(lmtest)
+
+lmtest <- cbind(newdata,lmtest)
+library(ggplot2)
+
+ggplot(data=lmtest, aes(x = AGE, y = fit, color=SEX)) + geom_point()
+
+
+newdata1 <- data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, SEX=as.factor(1), new_RACE="Black", new_POVERTY="1.00-1.99", new_INCOME2="$50,000 and over", new_USUALPL="Yes", new_HINOTCOVE="Yes"))
+newdata2 <- data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, SEX=as.factor(2), new_RACE="Black", new_POVERTY="1.00-1.99", new_INCOME2="$50,000 and over", new_USUALPL="Yes", new_HINOTCOVE="Yes"))
+newdata <- rbind(newdata1, newdata2)
+lmtest <- cbind(newdata,lmtest, row.names=NULL)
+
+ggplot(data=lmtest, aes(x = AGE, y = fit, color=SEX)) + geom_point()
+
+#Prediction Intervals 
+predict(fullmod, newdata=newdata, interval="prediction", level=.95)
 
 #First attempt using ggplot to create a regression model
 #ggplot(data = IPUMSdata_12_20, aes(x = new_BMI, y = new_RACE)) + 
