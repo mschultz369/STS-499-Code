@@ -10,34 +10,34 @@ IPUMSdata <- read_ipums_micro(ddi)
 IPUMSdata_12_20 <- filter(IPUMSdata, AGE>11, AGE<21)
 
 #Creating New Weight, Height, and BMI Variable
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_weight = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, weight = case_when(
   AGE < 18 ~ WEIGHTKID, 
   AGE >= 18 ~ WEIGHT))
 
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_height = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, height = case_when(
   AGE < 18 ~ HEIGHTKID, 
   AGE >= 18 ~ HEIGHT))
 
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_BMI = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, bmi = case_when(
   AGE < 18 ~ BMIKID/100, 
   AGE >= 18 ~ BMI))
 
 # Filter out missing data based on Height and Weight
-IPUMSdata_12_20 <- filter(IPUMSdata_12_20, new_height > 40, new_height < 90)
-IPUMSdata_12_20 <- filter(IPUMSdata_12_20, new_weight > 20, new_weight < 500)
+IPUMSdata_12_20 <- filter(IPUMSdata_12_20, height > 40, height < 90)
+IPUMSdata_12_20 <- filter(IPUMSdata_12_20, weight > 20, weight < 500)
 
 # Creating New Race Variable
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_RACE = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, race = case_when(
   RACEA == 100 ~ "aaWhite",
   RACEA == 200 ~ "Black",
-  RACEA == 310 ~ "Alaska Native / American Indian",
+  RACEA == 310 ~ "AL Native / Am. Ind.",
   RACEA > 400 & RACEA < 500 ~ "Asian",
   RACEA == 580 ~ NA_character_,
   RACEA == 600 ~ "Multiple"
 ))
 
 # Creating New Poverty Variable
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_POVERTY = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, poverty = case_when(
   POVERTY <= 14 ~ "0-1.0",
   POVERTY <= 25 & POVERTY >= 20 ~ "1.00-1.99",
   POVERTY <= 36 & POVERTY >= 31 ~ "2.00-4.99",
@@ -46,19 +46,19 @@ IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_POVERTY = case_when(
 ))
 
 # Creating New Income Variables 1 and 2
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_INCOME = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, income = case_when(
   INCFAM07ON <= 12 ~ "$0 - $49,999",
   INCFAM07ON <= 23 & INCFAM07ON >= 20 ~ "$50,000 and $99,999",
   INCFAM07ON == 24 ~ "$100,000 and over"
 ))
 
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_INCOME2 = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, income2 = case_when(
   INCFAM07ON <= 12 ~ "$0 - $49,999",
   INCFAM07ON >= 20 ~ "$50,000 and over"
 ))
 
 # Creating New Variable that indicates Usual Place of Medical Care
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_USUALPL = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, usualpl = case_when(
   USUALPL == 1 ~ "N0",
   USUALPL <= 3 ~ "Yes",
   USUALPL == 0 ~ NA_character_,
@@ -66,7 +66,7 @@ IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_USUALPL = case_when(
 ))
 
 #Creating New Health Status Variable
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_HEALTH = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, health = case_when(
   HEALTH == 1 ~ "aExcellent", 
   HEALTH == 2 ~ "bVery Good",
   HEALTH == 3 ~ "cGood", 
@@ -77,48 +77,80 @@ IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_HEALTH = case_when(
 ))
 
 #Creating New Variable Indicating those Above or Below Poverty Threshold
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_POORYN = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, pooryn = case_when(
   POORYN == 1 ~ "Above",
   POORYN == 2 ~ "Below",
   POORYN == 9 ~ NA_character_
 ))
 
 #Creating New Variable that indicates whether or not someone has Health Insurance
-IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, new_HINOTCOVE = case_when(
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, hinotcove = case_when(
   HINOTCOVE == 1 ~ "Yes",
   HINOTCOVE == 2 ~ "No",
   HINOTCOVE == 0 ~ NA_character_,
   HINOTCOVE > 6 ~ NA_character_
 ))
 
-#Changing Sex into a factor 
-IPUMSdata_12_20$SEX <- as.factor(IPUMSdata_12_20$SEX)
+#Changing Sex variable 
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, sex = case_when(
+  SEX == 1 ~ "Male",
+  SEX == 2 ~ "Female"
+))
 
 #Creating Age Squared Variable
-IPUMSdata12_20 <- mutate(IPUMSdata_12_20, age.SQ = AGE^2)
-
+IPUMSdata_12_20 <- mutate(IPUMSdata_12_20, age.SQ = AGE^2)
 
 #Creating MLR with different variables
-innatemod <- lm(formula=new_BMI ~ AGE + age.SQ + SEX + AGE*SEX + age.SQ*SEX + new_RACE + AGE*new_RACE + age.SQ*new_RACE + new_RACE*SEX, data=IPUMSdata_12_20)
+#innatemod <- lm(formula=new_BMI ~ AGE + age.SQ + SEX + AGE*SEX + age.SQ*SEX + new_RACE + AGE*new_RACE + age.SQ*new_RACE + new_RACE*SEX, data=IPUMSdata_12_20)
 
-externalmod <- lm(formula=new_BMI ~ new_POVERTY + new_INCOME2 + new_USUALPL + new_HINOTCOVE + new_HEALTH, data=IPUMSdata_12_20)
-summary(externalmod)
+#externalmod <- lm(formula=new_BMI ~ new_POVERTY + new_INCOME2 + new_USUALPL + new_HINOTCOVE + new_HEALTH, data=IPUMSdata_12_20)
 
-fullmod <- lm(new_BMI ~ AGE + age.SQ + SEX + AGE*SEX + age.SQ*SEX + new_RACE + new_RACE*SEX +
-                new_POVERTY + new_INCOME2 + new_USUALPL + new_HINOTCOVE, data = IPUMSdata_12_20)
-summary(fullmod)
+#summary(externalmod)
 
 
-# Graphing results of fullmod
+fullmod <- lm(bmi ~ AGE + age.SQ + sex + AGE*sex + age.SQ*sex + race + race*sex +
+                 pooryn + pooryn*race + pooryn*sex + pooryn*AGE + pooryn*age.SQ, data = IPUMSdata_12_20)
+
+#Graphing Results of Full Mod
 library(ggplot2)
 
-newdata1 <- data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, SEX=as.factor(1), new_RACE="Black", new_POVERTY="1.00-1.99", new_INCOME2="$50,000 and over", new_USUALPL="Yes", new_HINOTCOVE="Yes"))
-newdata2 <- data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, SEX=as.factor(2), new_RACE="Black", new_POVERTY="1.00-1.99", new_INCOME2="$50,000 and over", new_USUALPL="Yes", new_HINOTCOVE="Yes"))
+newdata1 <- data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="Black", pooryn="Above"))
+newdata2 <- data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="Black", pooryn="Above"))
 newdata <- rbind(newdata1, newdata2)
 lmtest <- predict(fullmod, newdata=newdata, interval = "prediction", level=.95)
 lmtest <- cbind(newdata, lmtest)
 
-ggplot(data=lmtest, aes(x = AGE, y = fit, color=SEX)) + geom_point()
+ggplot(data=lmtest, aes(x = AGE, y = fit, color=sex)) + geom_point()
+
+newdata3 <- data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="Black", pooryn="Above")) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="Black", pooryn="Above"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="Black", pooryn="Below"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="Black", pooryn="Below"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="aaWhite", pooryn="Above"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="aaWhite", pooryn="Above"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="aaWhite", pooryn="Below"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="aaWhite", pooryn="Below"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="AL Native / Am. Ind.", pooryn="Above"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="AL Native / Am. Ind.", pooryn="Above"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="AL Native / Am. Ind.", pooryn="Below"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="AL Native / Am. Ind.", pooryn="Below"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="Asian", pooryn="Above"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="Asian", pooryn="Above"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="Asian", pooryn="Below"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="Asian", pooryn="Below"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="Multiple", pooryn="Above"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="Multiple", pooryn="Above"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Male", race="Multiple", pooryn="Below"))) %>%
+  rbind(data.frame(list(AGE=seq(12,20,1), age.SQ=seq(12,20,1)^2, sex="Female", race="Multiple", pooryn="Below")))
+  
+lmtest2 <- predict(fullmod, newdata=newdata3, interval = "prediction", level=.95)
+lmtest2 <- cbind(newdata3, lmtest2)
+
+ggplot(data=lmtest2, aes(x = AGE, y = fit, color=race)) + geom_line() + facet_grid(. ~ sex) +  labs(title = "Prediction Lines using Sex as Variable", x = "Age", y = "Predicted") 
+  
+
+ggplot(data=lmtest2, aes(x = AGE, y = fit, color=race)) + geom_line() + facet_grid(pooryn ~ sex) +  labs(title = "Predicting BMI based off of Sex and Poverty Threshold", x = "Age", y = "Predicted BMI") 
+
 
 #First attempt using ggplot to create a regression model
 #ggplot(data = IPUMSdata_12_20, aes(x = new_BMI, y = new_RACE)) + 
